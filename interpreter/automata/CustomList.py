@@ -3,15 +3,16 @@ class CustomList(list):
         super().__init__(list)
 
     def __contains__(self, element):
+        error_msg = "Value=%r, not in %r" %(element, self)
         if( not isinstance(element, list) ):
             if( list.__contains__(self, element) ):
                 return True
             else:
-                raise LookupError("Value=%r, not in list" % element)
+                raise LookupError(error_msg)
         elif( isinstance(element, list) ):
             for item in element:
                 if( not list.__contains__(self, item) ):
-                    raise LookupError("Value=%r, not in list" % element)
+                    raise LookupError(error_msg)
             return True
 
     def append(self, element):
