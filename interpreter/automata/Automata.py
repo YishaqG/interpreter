@@ -29,7 +29,6 @@ class Automata:
         self.setAlphabet( data[KEYS[0]][0] )
         self.setStates( data )
         self.setTransitions( data[KEYS[2]] )
-        print(self)
 
     def _validateDict(self, data):
         for key in KEYS:

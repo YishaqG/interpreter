@@ -24,7 +24,7 @@ class Lexer(object):
 
     def setSymbolsTable(self, table):
         if( isinstance(table, SymbolsTable.SymbolsTable) ):
-            self.symbols_table = automata
+            self.symbols_table = table
         elif(isinstance(table, dict)):
             self.symbols_table = SymbolsTable.SymbolsTable()
             self.symbols_table.loadFromDict(table)

@@ -1,4 +1,4 @@
-PROGRAMA pares &%
+PROGRAMA pares
 CONSTANTES  num=5
 valores={5, 7, 2, 4, 8}
 INICIO
