@@ -1,20 +1,31 @@
 from enum import Enum
 
 class Token(Enum):
-    RECOIL = 1
     NAME = 0
+    RECOIL = 1
+
+class Function(Enum):
+    NAME = 0
+    PARAMETERS = 1
 
 class Types(Enum):
+    TYPES = 'type'
     TOKENS = 'tokens'
     RESERVED_WORDS = 'reserved_word'
+    FUNCTIONS = 'function'
+    IDS = 'identifier'
+    CONSTS = 'constant'
 
 KEYS = ['tokens', 'reserved_words']
 class SymbolsTable(object):
-
     def __init__(self):
         self.table = {}
+        self.table[Types.TYPES.value] = ['entero', 'caracter', 'arreglo', 'nada', 'apuntador']
         self.table[Types.TOKENS.value] = {}
         self.table[Types.RESERVED_WORDS.value] = []
+        self.table[Types.FUNCTIONS.value] = {}
+        self.table[Types.IDS.value] = {}
+        self.table[Types.CONSTS.value] = {}
 
     def __str__(self):
         return "Symbols Table:\t"+str(self.table)+"\n"
@@ -29,7 +40,6 @@ class SymbolsTable(object):
         self._validateDict(data)
         self.loadToken( data[KEYS[0]] )
         self.loadReservedWords( data[KEYS[1]][0] )
-        print(self)
 
     def loadToken(self, data):
         for token in data:
@@ -49,3 +59,31 @@ class SymbolsTable(object):
 
     def isReservedWord(self, key_word):
         return key_word in self.table[Types.RESERVED_WORDS.value]
+
+    def addFunction(self, name, parameters):
+        if( not isinstance(parameters, list) ):
+            raise TypeError( parameters )
+        for type in parameters:
+            if( not type in self.table[Types.TYPES.value] ):
+                error_msg = "Value=%r, not in %r" %(type, self.table[Types.TYPES.value])
+                raise LookupError(error_msg)
+
+        self.table[Types.FUNCTIONS.value][name] = parameters
+
+    def isFunction(self, name):
+        for function in self.table[Types.FUNCTIONS.value]:
+            if( name == function[Function.NAME.value] ):
+                return function
+        return None
+
+    def addID(self, type, name, value):
+        self.table[Types.IDS.value][name] = [type, value]
+
+    def getID(self, name):
+        return self.table[Types.IDS.value][name]
+
+    def addCONST(self, type, name, value):
+        self.table[Types.CONSTS.value][name] = [type, value]
+
+    def getCONST(self, name):
+        return self.table[Types.CONSTS.value][name]
