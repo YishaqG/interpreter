@@ -43,56 +43,64 @@ class Sintaxer(object):
     def checkProgram(self):
         if(self.current_token == PROGRAMA):
             self.checkHeader()
+            self.logger.info("FUCK_YOU_1")
             self.areThereConsts()
+            self.logger.info("FUCK_YOU_2")
             self.areThereArrays()
-            if(self.current_token == INICIO)
+            self.logger.info("FUCK_YOU_3")
+            if(self.current_token == INICIO):
                 self.nextToken()
-                self.checkBody()
-                if(self.current_token == FIN):
-                    self.nextToken()
-                else:
-                    self.error( FIN )
             else:
-                self.error( INICIO )
+                self.error(INICIO)
+            self.logger.info("FUCK_YOU_4")
+            self.checkBody()
+            self.nextToken()
+            if(self.current_token == FIN):
+                self.nextToken()
+            else:
+                self.error(FIN)
         else:
-            self.error( PROGRAMA )
+            self.error(PROGRAMA)
 
     def checkHeader(self):
         if(self.current_token == PROGRAMA):
             self.nextToken()
             self.match( 'id' )
         else:
-            self.error( PROGRAMA )
+            self.error(PROGRAMA)
+            #error_msg
+
 
     def assignment(self):
-        if(self.current_token[0] == 'id'):
-            self.idArray()
-            self.match('asigna')
-        else:
-            self.error('id')
+        self.idArray()
+        self.match('asigna')
 
     def areThereConsts(self):
         if(self.current_token == CONSTANTES):
             self.nextToken()
             self.defConst()
         elif(self.current_token == ARREGLOS):
-            pass
+            return None
         else:
-            self.error([CONSTANTES, ARREGLOS])
+            self.error(ARREGLOS)
+            #manda Error
+
 
     def defConst(self):
-        if(self.current_token[0] == 'id'):
-            self.assignment()
-            self.typesValues()
-            self.nextConst()
+        self.match('id')
+        self.assignment()
+        self.typesValues()
+        self.nextConst()
+
 
     def nextConst(self):
         if(self.current_token == ARREGLOS):
             return None
-        elif(self.current_token[0] == 'id'):
-            self.defConst()
-        else:
-            self.error([ARREGLOS, id])
+
+        self.match('id')
+        self.defConst()
+
+
 
     def areThereArrays(self):
         if(self.current_token == ARREGLOS):
@@ -103,15 +111,13 @@ class Sintaxer(object):
         else:
             self.error([ARREGLOS, INICIO])
 
-
     def defArray(self):
-        if(self.current_token[0] == 'id'):
-            self.assignment()
-            self.match('llave_a')
-            self.typesId()
-            self.nData()
-            self.match('llave_c')
-            self.nArray()
+        self.assignment()
+        self.match('llave_a')
+        self.typesId()
+        self.nData()
+        self.match('llave_c')
+        self.nArray()
 
 
     def nData(self):
@@ -122,80 +128,62 @@ class Sintaxer(object):
         self.typesId()
         self.nData()
 
+
     def nArray(self):
         if(self.current_token[0] == 'id'):
             self.defArray()
+
         elif(self.current_token == INICIO):
             return None
+
         else:
             self.error(['id', INICIO])
 
     def checkBody(self):
-        if(self.current_token[0] == 'function'):
+        if(self.current_token[0] == 'id' or self.current_token[0] == 'function' or self.current_token[0] == PARA or self.current_token[0] == SI):
             self.instruction()
-            self.nInstruction()
-        elif(self.current_token == PARA):
-            self.instruction()
-            self.nInstruction()
-        elif(self.current_token == SI):
-            self.instruction()
-            self.nInstruction()
-        elif(self.current_token[0] == 'id'):
-            self.instruction()
-            self.nInstruction()
         else:
-            self.error(['function', PARA, SI, 'id'])
+            self.error(['id', 'function', PARA, SI])
+
 
     def instruction(self):
         if(self.current_token[0] == 'function'):
             self.function()
+            self.nInstruction()
         elif(self.current_token == SI):
-            checkIf()
+            self.checkIf()
+            self.nInstruction()
         elif(self.current_token == PARA):
-            checkFor():
+            self.checkFor()
+            self.nInstruction()
         elif(self.current_token[0] == 'id'):
-            self.nextToken()
+            self.match('id')
             self.checkExpr()
+            self.nInstruction()
         else:
-            self.error('function', SI, PARA, 'id')
+            self.error(['function', 'id', SI, PARA])
 
-    def checkExpr(self):
-        if(self.current_token[0] == 'asigna'):
-            self.expr()
-        elif(self.current_token[0] == 'punto'):
-            self.arrayOp()
-        elif(self.current_token[0] == 'corchete_a'):
-            self.arrayOp()
-        else:
-            self.error(['asigna', 'punto', 'corchete_a'])
 
     def nInstruction(self):
-        if(self.current_token[0] == 'id'):
+        if(self.current_token[0] == 'id' or self.current_token[0] == 'function' or self.current_token[0] == 'PARA' or self.current_token[0] == 'SI'):
             self.instruction()
-        elif(self.current_token[0] == 'function'):
-            self.instruction()
-        elif(self.current_token == PARA):
-            self.instruction()
-        elif(self.current_token == SI):
-            self.instruction()
-        elif(self.current_token == FIN):
-            return None
-        elif(self.current_token == SINO):
-            return None
-        elif(self.current_token == PARA):
-            return None
-        elif(self.current_token == SI):
-            return None
-        elif(self.current_token[0] == 'id'):
-            return None
-        elif(self.current_token[0] == 'function'):
-            return None
+        elif(self.current_token[0] == FIN):
+            self.match(FIN)
         else:
-            self.error([SI, SINO, FIN, PARA, 'id', 'function'])
+            self.error(['function', 'id', FIN])
 
-     def function(self):
+    def function(self):
+        if(self.current_token[0] == 'function'):
+            self.nextToken()
+            self.match('parentesis_a')
+            self.parameter()
+            self.match('parentesis_c')
+            self.match('punto_coma')
+        else:
+            self.error(['function','parentesis_a', 'parentesis_c','punto_coma'])
 
-     def parameter(self):
+
+    def parameter(self):
         if(self.current_token[0] == 'id'):
             self.typesId()
             self.nParameter()
@@ -205,93 +193,208 @@ class Sintaxer(object):
         elif(self.current_token[0] == 'entero'):
             self.typesId()
             self.nParameter()
-
         else:
-            pass
+            self.error(['id','caracter','entero'])
 
 
     def nParameter(self):
-        if(self.current_token[0] == 'coma'):
-            self.match('coma')
-            self.typesId()
-
-        elif(self.current_token[0] == 'parentesis_c'):
+        if(self.current_token[0] == 'parentesis_c'):
             return None
 
-        else:
-            pass
+        self.match('coma')
+        self.nextToken()
+        self.typesId()
 
 
     def checkIf(self):
         if(self.current_token == SI):
+            self.nextToken()
             self.match('parentesis_a')
             self.checkCondition()
             self.match('parentesis_c')
+            self.match(ENTONCES)
             self.checkBody()
             self.checkElse()
         else:
-            pass
+            self.error([SI,'parentesis_a','parentesis_c', ENTONCES])
 
 
     def checkElse(self):
         if(self.current_token == SINO):
+            self.nextToken()
             self.checkBody()
-        elif(self.current_token == FIN):
-            pass
         else:
-            pass
+            self.error(SINO)
 
     def checkExpr(self):
+        if(self.current_token[0] == 'asigna'):
+            self.expr()
+        elif(self.current_token[0] ==  'punto' or self.current_token[0] == 'corchete_a'):
+            self.arrayOp()
+        else:
+            self.error(['asigna', 'punto', 'corchete_a'])
+
+
+    def expr(self):
+        if(self.current_token[0] == 'corchete_c' or self.current_token[0] == FIN or self.current_token[0] == 'id'):
+            return None
+        elif(self.current_token[0] == 'function' or self.current_token[0] == PARA or self.current_token[0] == SI):
+            return None
+        elif(self.current_token[0] == 'asigna'):
+            self.match('asigna')
+            self.checkOp()
+            self.parametersValues()
+        else:
+            self.error( ['corchete_c', 'function', 'asigna', FIN, SI, PARA])
+
+
+    def checkFor(self):
+        if(self.current_token == PARA):
+            self.nextToken()
+            self.variableCtrl()
+            self.match(HASTA)
+            self.parametersValues()
+            self.match(PASO)
+            self.mm()
+            self.match('entero')
+            self.match(HACER)
+            self.checkBody()
+        else:
+            self.error([PARA, HASTA, PASO, HACER, 'entero'])
+
+    def variableCtrl(self):
         self.match('id')
-        self.assignment()
+        self.nextToken()
+        self.ToCtrl()
+
+
+    def ToCtrl(self):
+        if(self.current_token == HASTA):
+            return None
+
+        self.match('asigna')
         self.parametersValues()
-        self.expr()
-        self.match('punto_coma')
 
-    def expr():
-        pass
 
-    def checkFor():
-        pass
+    def mm(self):
+        if(self.current_token[0] == 'resta'):
+            self.match('resta')
+        elif(self.current_token[0] == 'suma'):
+            self.match('suma')
+        else:
+            self.error(['resta', 'suma'])
 
-    def variableCtrl():
-        pass
+    def checkOp(self):
+        if(self.current_token[0] == 'mult'):
+            self.match('mult')
+        elif(self.current_token[0] == 'div_entera'):
+            self.match('div_entera')
+        elif(self.current_token[0] == 'MOD'):
+            self.match('MOD')
+        elif(self.current_token[0] == 'suma'):
+            self.mm()
+        elif(self.current_token[0] == 'resta'):
+            self.mm()
+        else:
+            self.error(['mult', 'div_entera', 'MOD', 'suma', 'resta'])
 
-    def mm():
-        pass
 
-    def checkOp():
-        pass
+    def checkCondition(self):
+        if(self.current_token[0] == 'id' or self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
+            self.parametersValues()
+            self.condition()
+            self.parametersValues()
+        else:
+            self.error(['id', 'caracter', 'entero'])
 
-    def checkCondition():
-        pass
+    def condition(self):
+        if(self.current_token[0] == 'igual_a'):
+            self.match('igual_a')
+        elif(self.current_token[0] == 'menor'):
+            self.match('menor')
+        elif(self.current_token[0] == 'menor_igual'):
+            self.match('menor_igual')
+        elif(self.current_token[0] == 'mayor'):
+            self.match('mayor')
+        elif(self.current_token[0] == 'mayor_igual'):
+            self.match('mayor_igual')
+        elif(self.current_token[0] == 'diferente'):
+            self.match('diferente')
+        else:
+            self.error(['igual_a', 'menor', 'menor_igual', 'mayor', 'menor_igual', 'diferente'])
 
-    def condition():
-        pass
+    def arrayOp(self):
+        if(self.current_token[0] == 'punto'):
+            self.lenght()
+        elif(self.current_token[0] == 'corchete_a'):
+            self.arrayAccess()
+        else:
+            self.error(['punto', 'corchete_a'])
 
-    def arrayOp():
-        pass
+    def lenght(self):
+        self.match('punto')
+        self.function()
 
-    def lenght():
-        pass
+    def arrayAccess(self):
+        if(self.current_token[0] == 'corchete_a'):
+            self.match('corchete_a')
+            self.index()
+            self.match('corchete_c')
+        else:
+            self.error(['corchete_a'])
 
-    def arrayAccess():
-        pass
+    def index(self):
+        if(self.current_token[0] == 'id' or self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
+            self.parametersValues()
+            self.expr()
+        else:
+            self.error(['id', 'caracter', 'entero'])
 
-    def index():
-        pass
+    def idArray(self):
+        if(self.current_token[0] == 'id'):
+            self.match('id')
+            self.arrayPos()
+        else:
+            self.error(['id'])
 
-    def idArray():
-        pass
+    def arrayPos(self):
+        if(self.current_token[0] == 'corchete_a'):
+            self.match('corchete_a')
+            self.index()
+            self.match('corchete_c')
+        elif(self.current_token[0] == 'asigna' or self.current_token[0] == 'igual_a' or self.current_token[0] == 'menor'):
+            return None
+        elif(self.current_token[0] == 'menor_igual' or self.current_token[0] == 'mayor' or self.current_token[0] == 'mayor_igual'):
+            return None
+        elif(self.current_token[0] == 'diferente' or self.current_token[0] == PASO or self.current_token[0] == 'parentesis_c'):
+            return None
+        elif(self.current_token[0] == 'corchete_c' or self.current_token[0] == HASTA or self.current_token[0] == FIN or self.current_token[0] == 'id'):
+            return None
+        elif(self.current_token[0] == 'function' or self.current_token[0] == PARA or self.current_token[0] == SI):
+            return None
+        else:
+            self.error(['TO_DO'])
 
-    def arrayPos():
-        pass
+    def parametersValues(self):
+        if(self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
+            self.typesValues()
 
-    def parametersValues():
-        pass
+        self.match('id')
+        self.idArray()
 
-    def typesValues():
-        pass
+    def typesValues(self):
+        if(self.current_token[0] == 'caracter'):
+            self.match('caracter')
+        elif(self.current_token[0] == 'entero'):
+            self.match('entero')
+        else:
+            self.error(['caracter', 'entero'])
 
-    def typesId():
-        pass
+
+    def typesId(self):
+        if(self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
+            self.typesValues()
+        elif(self.current_token[0] == 'id'):
+            self.match('id')
+        else:
+            self.error(['caracter', 'id', 'entero'])
