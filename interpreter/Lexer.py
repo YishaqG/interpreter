@@ -103,6 +103,9 @@ class Lexer(object):
                 if( self.symbols_table.isReservedWord(lexeme) ):
                     evaluation = SymbolsTable.Types.RESERVED_WORDS.value
                     break
+                elif( self.symbols_table.isFunction(lexeme) ):
+                    evaluation = SymbolsTable.Types.FUNCTIONS.value
+                    break
                 elif(evaluation is not None):
                     break
 
@@ -111,7 +114,10 @@ class Lexer(object):
     def _classify(self, data):
         tuple = None
         self.logger.debug("Classifier.ResivedData="+str(data))
-        if( data[ID] is SymbolsTable.Types.RESERVED_WORDS.value ):
+        itIs = (    (data[ID] is SymbolsTable.Types.RESERVED_WORDS.value)
+                    or (data[ID] is SymbolsTable.Types.FUNCTIONS.value)
+                )
+        if( itIs ):
             tuple = (
                 data[ID],
                 data[LEXEME],
