@@ -1,13 +1,19 @@
 import logging
+from interpreter.Container import EndOfFileException
 
 ARREGLOS = ('reserved_word', 'ARREGLOS')
 PROGRAMA = ('reserved_word', 'PROGRAMA')
 CONSTANTES = ('reserved_word', 'CONSTANTES')
+HASTA = ('reserved_word', 'HASTA')
+HACER = ('reserved_word', 'HACER')
+MOD = ('reserved_word', 'MOD')
+ENTONCES = ('reserved_word', 'ENTONCES')
 INICIO = ('reserved_word', 'INICIO')
 FIN = ('reserved_word', 'FIN')
 PARA = ('reserved_word', 'PARA')
 SI = ('reserved_word', 'SI')
-SINO = ('reserved_word', 'SINO')
+SINO = ('reserved_word', 'NOSI')
+PASO = ('reserved_word', 'PASO')
 
 class Sintaxer(object):
 
@@ -16,14 +22,21 @@ class Sintaxer(object):
         self.symbols_table = symbols_table
         self.lexer = lexer
         self.current_token = None
+        self.current_line = None
+        self.instruction = []
 
     def nextToken(self):
-        self.current_token = self.lexer.nextToken()[:2]
+        token = self.lexer.nextToken()
+        self.logger.debug("Evaluating token: " + str(token))
+        self.current_token = token[:2]
+        if( self.current_line != token[2]):
+            self.current_line = token[2]
 
     def error(self, expected):
         error_msg = "Expected %r found %r" %(expected, self.current_token)
+        error_msg += " at line %r" % self.current_line
         self.logger.error(error_msg)
-        #TODO Raise error counter
+        raise SyntacticError()
 
     def match(self, terminal):
         if( terminal == self.current_token[0] ):
@@ -43,22 +56,23 @@ class Sintaxer(object):
     def checkProgram(self):
         if(self.current_token == PROGRAMA):
             self.checkHeader()
-            self.logger.info("FUCK_YOU_1")
+            self.logger.info("Header Checked")
             self.areThereConsts()
-            self.logger.info("FUCK_YOU_2")
+            self.logger.info("Constants Checked")
             self.areThereArrays()
-            self.logger.info("FUCK_YOU_3")
+            self.logger.info("Arrays Checked")
             if(self.current_token == INICIO):
                 self.nextToken()
             else:
                 self.error(INICIO)
-            self.logger.info("FUCK_YOU_4")
+            self.logger.info("Program start")
             self.checkBody()
-            self.nextToken()
+            self.logger.info("Body checked")
             if(self.current_token == FIN):
                 self.nextToken()
             else:
                 self.error(FIN)
+            self.logger.info("Program end")
         else:
             self.error(PROGRAMA)
 
@@ -68,12 +82,13 @@ class Sintaxer(object):
             self.match( 'id' )
         else:
             self.error(PROGRAMA)
-            #error_msg
-
 
     def assignment(self):
-        self.idArray()
+        temp = []
+        temp += self.idArray()
         self.match('asigna')
+
+        return temp
 
     def areThereConsts(self):
         if(self.current_token == CONSTANTES):
@@ -83,24 +98,19 @@ class Sintaxer(object):
             return None
         else:
             self.error(ARREGLOS)
-            #manda Error
-
 
     def defConst(self):
-        self.match('id')
-        self.assignment()
-        self.typesValues()
+        temp = []
+        temp += self.assignment()
+        temp.append( self.typesValues() )
+        self.semantic.defConst(temp)
         self.nextConst()
-
 
     def nextConst(self):
         if(self.current_token == ARREGLOS):
             return None
 
-        self.match('id')
         self.defConst()
-
-
 
     def areThereArrays(self):
         if(self.current_token == ARREGLOS):
@@ -112,22 +122,24 @@ class Sintaxer(object):
             self.error([ARREGLOS, INICIO])
 
     def defArray(self):
+        temp = []
         self.assignment()
         self.match('llave_a')
-        self.typesId()
-        self.nData()
+        temp.append( self.nData() )
         self.match('llave_c')
+        self.semantic.defArray(temp)
         self.nArray()
-
 
     def nData(self):
         if(self.current_token[0] == 'llave_c'):
             return None
 
+        temp = []
         self.match('coma')
-        self.typesId()
-        self.nData()
-
+        temp.append(self.typesId())
+        hasNData = self.nData()
+        if( hasNData is not None ):
+            temp.append( hasNData )
 
     def nArray(self):
         if(self.current_token[0] == 'id'):
@@ -140,39 +152,39 @@ class Sintaxer(object):
             self.error(['id', INICIO])
 
     def checkBody(self):
-        if(self.current_token[0] == 'id' or self.current_token[0] == 'function' or self.current_token[0] == PARA or self.current_token[0] == SI):
+        self.logger.info('checkBody')
+        predict = self.current_token[0] in ['id', 'function']
+        itIs = self.current_token in [PARA, SI]
+        if( predict or itIs ):
             self.instruction()
+            self.nInstruction()
         else:
             self.error(['id', 'function', PARA, SI])
 
-
     def instruction(self):
+        self.logger.info('instruction')
         if(self.current_token[0] == 'function'):
             self.function()
-            self.nInstruction()
         elif(self.current_token == SI):
             self.checkIf()
-            self.nInstruction()
         elif(self.current_token == PARA):
             self.checkFor()
-            self.nInstruction()
         elif(self.current_token[0] == 'id'):
-            self.match('id')
             self.checkExpr()
-            self.nInstruction()
         else:
-            self.error(['function', 'id', SI, PARA])
-
+            self.error( ['function', 'id', SI, PARA] )
 
     def nInstruction(self):
-        if(self.current_token[0] == 'id' or self.current_token[0] == 'function' or self.current_token[0] == 'PARA' or self.current_token[0] == 'SI'):
-            self.instruction()
-        elif(self.current_token[0] == FIN):
-            self.match(FIN)
+        self.logger.info('nInstruction')
+        predict = ['id', 'function']
+        itIs = (self.current_token == PARA) or (self.current_token == SI)
+        if((self.current_token[0] in predict) or itIs):
+            self.checkBody()
         else:
-            self.error(['function', 'id', FIN])
+            return None
 
     def function(self):
+        self.logger.info('function')
         if(self.current_token[0] == 'function'):
             self.nextToken()
             self.match('parentesis_a')
@@ -182,91 +194,124 @@ class Sintaxer(object):
         else:
             self.error(['function','parentesis_a', 'parentesis_c','punto_coma'])
 
-
     def parameter(self):
-        if(self.current_token[0] == 'id'):
-            self.typesId()
-            self.nParameter()
-        elif(self.current_token[0] == 'caracter'):
-            self.typesId()
-            self.nParameter()
-        elif(self.current_token[0] == 'entero'):
+        predict = ['id', 'caracter', 'entero']
+        if( self.current_token[0] in predict):
             self.typesId()
             self.nParameter()
         else:
-            self.error(['id','caracter','entero'])
-
+            self.error( predict )
 
     def nParameter(self):
         if(self.current_token[0] == 'parentesis_c'):
             return None
 
         self.match('coma')
-        self.nextToken()
         self.typesId()
 
-
     def checkIf(self):
+        self.logger.info('checkIf')
         if(self.current_token == SI):
             self.nextToken()
             self.match('parentesis_a')
             self.checkCondition()
             self.match('parentesis_c')
-            self.match(ENTONCES)
+            if(self.current_token == ENTONCES):
+                self.nextToken()
+            else:
+                self.error(ENTONCES)
             self.checkBody()
             self.checkElse()
         else:
             self.error([SI,'parentesis_a','parentesis_c', ENTONCES])
 
-
     def checkElse(self):
+        self.logger.info('checkElse')
         if(self.current_token == SINO):
             self.nextToken()
             self.checkBody()
+        elif(self.current_token == FIN):
+            self.nextToken()
         else:
-            self.error(SINO)
+            self.error( [SINO, FIN] )
 
     def checkExpr(self):
-        if(self.current_token[0] == 'asigna'):
-            self.expr()
-        elif(self.current_token[0] ==  'punto' or self.current_token[0] == 'corchete_a'):
-            self.arrayOp()
+        self.logger.info('checkExpr')
+        temp = []
+        temp.append(self.current_token[1])
+        if(self.current_token[0] == 'id'):
+            self.match('id')
+            temp += self.checkSubExpr()
+            self.match('punto_coma')
+            print(temp)
         else:
-            self.error(['asigna', 'punto', 'corchete_a'])
+            self.error('id')
 
+        return temp
+
+    def checkSubExpr(self):
+        temp = []
+        if(self.current_token[0] == 'asigna'):
+            temp += self.add()
+        elif(self.current_token[0] == 'corchete_a'):
+            self.arrayAccess()
+            self.add()
+        else:
+            self.error(['asigna', 'corchete_a'])
+
+        return temp
+
+    def add(self):
+        temp = []
+        temp.append(self.current_token[1])
+        if(self.current_token[0] == 'asigna'):
+            self.match('asigna')
+            self.parametersValues()
+            temp += self.expr()
+        else:
+            self.error('asigna')
 
     def expr(self):
-        if(self.current_token[0] == 'corchete_c' or self.current_token[0] == FIN or self.current_token[0] == 'id'):
-            return None
-        elif(self.current_token[0] == 'function' or self.current_token[0] == PARA or self.current_token[0] == SI):
-            return None
-        elif(self.current_token[0] == 'asigna'):
-            self.match('asigna')
+        predict = ['suma', 'div_entera', 'resta', 'mult']
+        if((self.current_token[0] in predict) or self.current_token == MOD):
             self.checkOp()
             self.parametersValues()
+        elif( self.current_token[0] in ['punto_coma', 'corchete_c'] ):
+            return None
         else:
-            self.error( ['corchete_c', 'function', 'asigna', FIN, SI, PARA])
-
+            self.error( predict + ['punto_coma', 'corchete_c'] + MOD )
 
     def checkFor(self):
+        self.logger.info('checkFor')
         if(self.current_token == PARA):
             self.nextToken()
             self.variableCtrl()
-            self.match(HASTA)
+            if( self.current_token == HASTA):
+                self.nextToken()
+            else:
+                self.error(HASTA)
             self.parametersValues()
-            self.match(PASO)
+            if( self.current_token == PASO):
+                self.nextToken()
+            else:
+                self.error(PASO)
             self.mm()
             self.match('entero')
-            self.match(HACER)
+            if( self.current_token == HACER):
+                self.nextToken()
+            else:
+                self.error(HACER)
             self.checkBody()
+            if( self.current_token == FIN):
+                self.nextToken()
+            else:
+                self.error(FIN)
         else:
             self.error([PARA, HASTA, PASO, HACER, 'entero'])
 
     def variableCtrl(self):
         self.match('id')
-        self.nextToken()
         self.ToCtrl()
-
 
     def ToCtrl(self):
         if(self.current_token == HASTA):
@@ -274,7 +319,6 @@ class Sintaxer(object):
 
         self.match('asigna')
         self.parametersValues()
-
 
     def mm(self):
         if(self.current_token[0] == 'resta'):
@@ -289,15 +333,14 @@ class Sintaxer(object):
             self.match('mult')
         elif(self.current_token[0] == 'div_entera'):
             self.match('div_entera')
-        elif(self.current_token[0] == 'MOD'):
-            self.match('MOD')
+        elif(self.current_token[1] == 'MOD'):
+            self.nextToken()
         elif(self.current_token[0] == 'suma'):
             self.mm()
         elif(self.current_token[0] == 'resta'):
             self.mm()
         else:
             self.error(['mult', 'div_entera', 'MOD', 'suma', 'resta'])
-
 
     def checkCondition(self):
         if(self.current_token[0] == 'id' or self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
@@ -324,43 +367,66 @@ class Sintaxer(object):
             self.error(['igual_a', 'menor', 'menor_igual', 'mayor', 'menor_igual', 'diferente'])
 
     def arrayOp(self):
+        temp = []
+        temp.append('array_access')
         if(self.current_token[0] == 'punto'):
-            self.lenght()
+            temp += self.lenght()
         elif(self.current_token[0] == 'corchete_a'):
-            self.arrayAccess()
+            temp += self.arrayAccess()
         else:
             self.error(['punto', 'corchete_a'])
 
+        return temp
+
     def lenght(self):
+        temp = []
         self.match('punto')
-        self.function()
+        if(self.current_token[1] == 'lenght'):
+            self.nextToken()
+            temp.append( 'LEN' )
+        else:
+            self.error('lenght')
+
+        return temp
 
     def arrayAccess(self):
+        temp = []
         if(self.current_token[0] == 'corchete_a'):
             self.match('corchete_a')
-            self.index()
+            temp += self.index()
             self.match('corchete_c')
+            temp.append('array_access')
         else:
             self.error(['corchete_a'])
 
+        return temp
+
     def index(self):
+        temp = []
         if(self.current_token[0] == 'id' or self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
-            self.parametersValues()
-            self.expr()
+            temp += self.parametersValues()
+            temp += self.expr()
         else:
             self.error(['id', 'caracter', 'entero'])
 
     def idArray(self):
+        temp = []
         if(self.current_token[0] == 'id'):
+            temp.append( self.current_token )
             self.match('id')
-            self.arrayPos()
+            hasArrayAccess = self.arrayPos()
+            if( hasArrayAccess is not None ):
+                temp.append( hasArrayAccess )
         else:
             self.error(['id'])
 
+        return temp
+
     def arrayPos(self):
+        temp = None
         if(self.current_token[0] == 'corchete_a'):
             self.match('corchete_a')
-            self.index()
+            temp = self.index()
             self.match('corchete_c')
         elif(self.current_token[0] == 'asigna' or self.current_token[0] == 'igual_a' or self.current_token[0] == 'menor'):
             return None
@@ -375,14 +441,38 @@ class Sintaxer(object):
         else:
             self.error(['TO_DO'])
 
-    def parametersValues(self):
-        if(self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
-            self.typesValues()
+        return temp
 
-        self.match('id')
-        self.idArray()
+    def parametersValues(self):
+        temp  = []
+        if( self.current_token[0] == 'id'):
+            temp.append( self.current_token )
+            self.match('id')
+            temp += self.fromID()
+        elif(self.current_token in ['caracter', 'entero']):
+            temp.append( self.typesValues() )
+        else:
+            self.error( ['id', 'caracter', 'entero'] )
+
+        return temp
+
+    def fromID(self):
+        temp = []
+        toEpsilon = ['igual_a', 'menor', 'menor_igual', 'mayor', 'mayor_igual', 'diferente', 'mult', 'div_entera', 'MOD', 'suma', 'resta', 'parentesis_c', 'corchete_c', 'punto_coma']
+        if(self.current_token[0] == 'corchete_a'):
+            temp += self.arrayPos()
+        elif(self.current_token[0] == 'punto'):
+            temp += self.lenght()
+        elif( (self.current_token[0] in toEpsilon) or (self.current_token in [HASTA, PASO])):
+            return None
+        else:
+            predict = toEpsilon + [HASTA, PASO, 'corchete_a', 'punto']
+            self.error(predict)
+
+        return temp
 
     def typesValues(self):
+        temp = self.current_token
         if(self.current_token[0] == 'caracter'):
             self.match('caracter')
         elif(self.current_token[0] == 'entero'):
@@ -390,11 +480,20 @@ class Sintaxer(object):
         else:
             self.error(['caracter', 'entero'])
 
+        return temp
 
     def typesId(self):
+        temp = None
         if(self.current_token[0] == 'caracter' or self.current_token[0] == 'entero'):
-            self.typesValues()
+            temp = self.typesValues()
         elif(self.current_token[0] == 'id'):
+            temp = self.current_token
             self.match('id')
         else:
             self.error(['caracter', 'id', 'entero'])
+
+        return temp
+
+class SyntacticError(Exception):
+    def __init__(self):
+        pass

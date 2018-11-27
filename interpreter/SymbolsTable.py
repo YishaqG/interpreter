@@ -71,10 +71,7 @@ class SymbolsTable(object):
         self.table[Types.FUNCTIONS.value][name] = parameters
 
     def isFunction(self, name):
-        for function in self.table[Types.FUNCTIONS.value]:
-            if( name == function[Function.NAME.value] ):
-                return function
-        return None
+        return name in self.table[Types.FUNCTIONS.value]
 
     def addID(self, type, name, value):
         self.table[Types.IDS.value][name] = [type, value]

@@ -5,6 +5,10 @@ from . import SymbolsTable
 from .Container import Container
 
 
+class Token(Enum):
+    TYPE = 0
+    LEXEME = 1
+    FROM_LINE = 2
 
 ID = 0
 LEXEME = 1
